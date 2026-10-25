@@ -1,3 +1,5 @@
+Custom version that includes a "Select Window" button on the Processes page: click it, then click any window to jump to the process that owns it.
+
 plasma-systemmonitor
 ====================
 
