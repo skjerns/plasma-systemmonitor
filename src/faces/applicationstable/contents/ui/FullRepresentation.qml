@@ -47,6 +47,15 @@ Faces.SensorFace {
             }
         },
         Kirigami.Action {
+            icon.name: "crosshairs"
+            text: i18nc("@action", "Select Window")
+            tooltip: i18nc("@info:tooltip", "Click on a window to show the application or process it belongs to")
+            displayHint: Kirigami.DisplayHint.IconOnly | Kirigami.DisplayHint.KeepVisible
+            visible: windowPicker.available
+            enabled: !windowPicker.active
+            onTriggered: windowPicker.pick()
+        },
+        Kirigami.Action {
             icon.name: "application-exit"
             text: i18nc("@action", "Quit Application")
             displayHint: Kirigami.DisplayHint.KeepVisible
@@ -69,6 +78,39 @@ Faces.SensorFace {
             onTriggered: columnDialog.open()
         }
     ]
+
+    // Shows a process that is not part of an application on the Processes page.
+    function showInProcesses(pid) {
+        const actions = root.Window.window?.globalDrawer?.actions ?? []
+        const processesAction = Array.from(actions).find(action => action.controller?.fileName === "processes.page")
+        if (!processesAction) {
+            windowPickerMessage.text = i18nc("@info", "The selected window does not belong to an application.")
+            windowPickerMessage.visible = true
+            return
+        }
+
+        windowPicker.forwardToProcessTable(pid)
+        processesAction.trigger()
+    }
+
+    Table.WindowPicker {
+        id: windowPicker
+
+        onActiveChanged: {
+            if (active) {
+                windowPickerMessage.visible = false
+            }
+        }
+        onPicked: (pid, windowInfo) => {
+            if (!table.selectApplication(pid, windowInfo.desktopFile ?? "")) {
+                root.showInProcesses(pid)
+            }
+        }
+        onFailed: {
+            windowPickerMessage.text = i18nc("@info", "Could not determine which process the selected window belongs to.")
+            windowPickerMessage.visible = true
+        }
+    }
 
     contentItem: SplitView {
         Layout.minimumHeight: table.Layout.minimumHeight
@@ -164,6 +206,17 @@ Faces.SensorFace {
                         event.accepted = true;
                     }
                 }
+            }
+
+            Kirigami.InlineMessage {
+                id: windowPickerMessage
+
+                Layout.fillWidth: true
+                Layout.margins: Kirigami.Units.largeSpacing
+
+                type: Kirigami.MessageType.Warning
+                showCloseButton: true
+                visible: false
             }
         }
 

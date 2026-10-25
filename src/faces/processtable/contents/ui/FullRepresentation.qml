@@ -43,6 +43,7 @@ Faces.SensorFace {
             icon.name: "crosshairs"
             text: i18nc("@action", "Select Window")
             tooltip: i18nc("@info:tooltip", "Click on a window to show the process it belongs to")
+            displayHint: Kirigami.DisplayHint.IconOnly | Kirigami.DisplayHint.KeepVisible
             visible: windowPicker.available
             enabled: !windowPicker.active
             onTriggered: windowPicker.pick()
@@ -141,25 +142,68 @@ Faces.SensorFace {
     ActionGroup { id: showGroup; onTriggered: root.config.userFilterMode = action.mode }
 
     function showProcess(pid) {
-        let index = table.model.indexOfPid(pid)
+        windowPickerMessage.visible = false
+        showProcessTimer.pid = pid
+        showProcessTimer.attempts = 0
+        showProcessTimer.restart()
+        showProcessTimer.trySelect()
+    }
 
-        // The process may be hidden by the search or the kind of processes shown.
-        if (!index.valid && table.nameFilterString !== "") {
-            table.nameFilterString = ""
-            index = table.model.indexOfPid(pid)
+    // The Applications page sends us processes that are not part of an application.
+    function showForwardedProcess() {
+        const pid = windowPicker.takeForwardedPid()
+        if (pid > 0) {
+            showProcess(pid)
         }
-        if (!index.valid && root.config.userFilterMode != Table.ProcessSortFilterModel.ViewAll) {
-            root.config.userFilterMode = Table.ProcessSortFilterModel.ViewAll
-            index = table.model.indexOfPid(pid)
-        }
+    }
 
-        if (!index.valid) {
-            windowPickerMessage.text = i18nc("@info", "The process with ID %1 could not be found.", pid)
-            windowPickerMessage.visible = true
-            return
+    onVisibleChanged: {
+        if (visible) {
+            showForwardedProcess()
         }
+    }
+    Component.onCompleted: {
+        if (visible) {
+            showForwardedProcess()
+        }
+    }
 
-        table.selectIndex(index)
+    // A page that was just shown may still be loading its processes, so keep trying for a bit.
+    Timer {
+        id: showProcessTimer
+
+        property var pid
+        property int attempts
+
+        interval: 250
+        repeat: true
+        onTriggered: trySelect()
+
+        function trySelect() {
+            if (!table.model.containsPid(pid)) {
+                if (++attempts >= 20) {
+                    stop()
+                    windowPickerMessage.text = i18nc("@info", "The process with ID %1 could not be found.", pid)
+                    windowPickerMessage.visible = true
+                }
+                return
+            }
+            stop()
+
+            // The process may be hidden by the search or the kind of processes shown.
+            let index = table.model.indexOfPid(pid)
+            if (!index.valid && table.nameFilterString !== "") {
+                table.nameFilterString = ""
+                index = table.model.indexOfPid(pid)
+            }
+            if (!index.valid && root.config.userFilterMode != Table.ProcessSortFilterModel.ViewAll) {
+                root.config.userFilterMode = Table.ProcessSortFilterModel.ViewAll
+                index = table.model.indexOfPid(pid)
+            }
+            if (index.valid) {
+                table.selectIndex(index)
+            }
+        }
     }
 
     Table.WindowPicker {

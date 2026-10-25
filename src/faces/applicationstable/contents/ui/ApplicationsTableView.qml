@@ -77,6 +77,41 @@ Table.BaseTableView {
         cpuMode: displayModel.data(displayModel.index(0, appModel.enabledAttributes.indexOf("usage")), Table.ColumnDisplayModel.DisplayStyleRole)
     }
 
+    // Selects the application that the process with pid belongs to, if its window, which has the
+    // given desktop file, belongs to that application. Returns whether it selected an application.
+    function selectApplication(pid, desktopFile) {
+        const menuIdColumn = appModel.enabledAttributes.indexOf("menuId")
+        const withoutSuffix = id => id.replace(/\.desktop$/, "")
+
+        for (let row = 0; row < appModel.rowCount(); ++row) {
+            const pids = appModel.data(appModel.index(row, 0), Process.ProcessDataModel.PIDs) ?? []
+            if (!pids.includes(pid)) {
+                continue
+            }
+
+            // Processes started from a terminal belong to the terminal's application, so the window
+            // must be the application's own.
+            const menuId = "" + appModel.data(appModel.index(row, menuIdColumn), Process.ProcessDataModel.Value)
+            if (!desktopFile || withoutSuffix(menuId) !== withoutSuffix(desktopFile)) {
+                return false
+            }
+
+            let index = sortColumnFilter.mapFromSource(cacheModel.index(row, 0))
+            if (!index.valid && filterString !== "") {
+                filterString = ""
+                index = sortColumnFilter.mapFromSource(cacheModel.index(row, 0))
+            }
+            if (!index.valid) {
+                return false
+            }
+
+            selectIndex(index)
+            return true
+        }
+
+        return false
+    }
+
     idRole: "Attribute"
 
     columnWidths: [200, 100, 100, 100, 100]

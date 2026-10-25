@@ -7,6 +7,7 @@
 #include "WindowPicker.h"
 
 #include <limits>
+#include <utility>
 
 #include <QDBusConnection>
 #include <QDBusConnectionInterface>
@@ -20,6 +21,8 @@
 using namespace std::chrono_literals;
 
 constexpr auto KWinService = QLatin1StringView("org.kde.KWin");
+
+static qint64 s_forwardedPid = 0;
 
 WindowPicker::WindowPicker(QObject *parent)
     : QObject(parent)
@@ -90,7 +93,7 @@ void WindowPicker::pick()
         const auto pid = info.value(QStringLiteral("pid")).toLongLong(&ok);
         if (ok && pid > 0) {
             finish();
-            Q_EMIT picked(pid);
+            Q_EMIT picked(pid, info);
             return;
         }
 
@@ -102,8 +105,19 @@ void WindowPicker::pick()
             return;
         }
 
+        m_windowInfo = info;
         queryPid(uuid);
     });
+}
+
+void WindowPicker::forwardToProcessTable(qint64 pid)
+{
+    s_forwardedPid = pid;
+}
+
+qint64 WindowPicker::takeForwardedPid()
+{
+    return std::exchange(s_forwardedPid, 0);
 }
 
 void WindowPicker::windowPidFound(const QString &uuid, const QString &pid)
@@ -112,12 +126,13 @@ void WindowPicker::windowPidFound(const QString &uuid, const QString &pid)
         return;
     }
 
+    const auto windowInfo = m_windowInfo;
     finish();
 
     bool ok = false;
     const auto value = pid.toLongLong(&ok);
     if (ok && value > 0) {
-        Q_EMIT picked(value);
+        Q_EMIT picked(value, windowInfo);
     } else {
         qWarning() << "KWin could not find the process ID of window" << uuid;
         Q_EMIT failed();
@@ -178,6 +193,7 @@ void WindowPicker::finish()
 {
     m_scriptTimeout.stop();
     m_pendingUuid = QUuid();
+    m_windowInfo.clear();
     unloadScript();
     setActive(false);
 }

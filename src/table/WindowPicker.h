@@ -11,6 +11,7 @@
 #include <QObject>
 #include <QTimer>
 #include <QUuid>
+#include <QVariantMap>
 #include <qqmlregistration.h>
 
 class QTemporaryFile;
@@ -50,8 +51,22 @@ public:
      */
     Q_INVOKABLE void pick();
 
-    Q_SIGNAL void picked(qint64 pid);
+    /**
+     * Emitted with the process ID of the picked window and KWin's information
+     * about it, such as "desktopFile".
+     */
+    Q_SIGNAL void picked(qint64 pid, const QVariantMap &windowInfo);
     Q_SIGNAL void failed();
+
+    /**
+     * Hand a process to the process table, which takes it with takeForwardedPid()
+     * once it is shown.
+     */
+    Q_INVOKABLE void forwardToProcessTable(qint64 pid);
+    /**
+     * Returns the process passed to forwardToProcessTable(), or 0 if there is none.
+     */
+    Q_INVOKABLE qint64 takeForwardedPid();
 
 public Q_SLOTS:
     // Called over D-Bus by the KWin script started by queryPid().
@@ -67,6 +82,7 @@ private:
     bool m_active = false;
     QString m_objectPath;
     QUuid m_pendingUuid;
+    QVariantMap m_windowInfo;
     QString m_scriptName;
     std::unique_ptr<QTemporaryFile> m_scriptFile;
     QTimer m_scriptTimeout;
