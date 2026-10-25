@@ -50,6 +50,20 @@ FocusScope {
     signal headerContextMenuRequested(int column, string columnId, point position)
     signal sort(int column, int order)
 
+    // Selects the row of index, an index of model, expanding its parents and scrolling it into view.
+    function selectIndex(index) {
+        // See the model binding of tableView below.
+        if (tableView.model != root.model) {
+            index = tableView.model.mapFromSource(index)
+        }
+
+        tableView.expandToIndex(index)
+        tableView.forceLayout()
+        tableView.positionViewAtRow(tableView.rowAtIndex(index), TableView.Contain)
+        tableView.selectionModel.setCurrentIndex(index, ItemSelectionModel.ClearAndSelect | ItemSelectionModel.Rows)
+        tableView.forceActiveFocus()
+    }
+
     Layout.minimumHeight: heading.height + root.rowHeight * 3
 
     clip: true

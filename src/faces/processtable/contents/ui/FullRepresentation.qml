@@ -40,6 +40,15 @@ Faces.SensorFace {
         },
 
         Kirigami.Action {
+            icon.name: "crosshairs"
+            text: i18nc("@action", "Select Window")
+            tooltip: i18nc("@info:tooltip", "Click on a window to show the process it belongs to")
+            visible: windowPicker.available
+            enabled: !windowPicker.active
+            onTriggered: windowPicker.pick()
+        },
+
+        Kirigami.Action {
             icon.name: "process-stop"
             text: i18nc("@action", "End Process")
             onTriggered: processHelper.sendSignalToSelection(Process.Signal.TerminateSignal)
@@ -130,6 +139,43 @@ Faces.SensorFace {
     ]
 
     ActionGroup { id: showGroup; onTriggered: root.config.userFilterMode = action.mode }
+
+    function showProcess(pid) {
+        let index = table.model.indexOfPid(pid)
+
+        // The process may be hidden by the search or the kind of processes shown.
+        if (!index.valid && table.nameFilterString !== "") {
+            table.nameFilterString = ""
+            index = table.model.indexOfPid(pid)
+        }
+        if (!index.valid && root.config.userFilterMode != Table.ProcessSortFilterModel.ViewAll) {
+            root.config.userFilterMode = Table.ProcessSortFilterModel.ViewAll
+            index = table.model.indexOfPid(pid)
+        }
+
+        if (!index.valid) {
+            windowPickerMessage.text = i18nc("@info", "The process with ID %1 could not be found.", pid)
+            windowPickerMessage.visible = true
+            return
+        }
+
+        table.selectIndex(index)
+    }
+
+    Table.WindowPicker {
+        id: windowPicker
+
+        onActiveChanged: {
+            if (active) {
+                windowPickerMessage.visible = false
+            }
+        }
+        onPicked: pid => root.showProcess(pid)
+        onFailed: {
+            windowPickerMessage.text = i18nc("@info", "Could not determine which process the selected window belongs to.")
+            windowPickerMessage.visible = true
+        }
+    }
 
     contentItem: Item {
         ToolBar {
@@ -228,6 +274,21 @@ Faces.SensorFace {
                     event.accepted = true;
                 }
             }
+        }
+
+        Kirigami.InlineMessage {
+            id: windowPickerMessage
+
+            anchors {
+                left: parent.left
+                right: parent.right
+                bottom: parent.bottom
+                margins: Kirigami.Units.largeSpacing
+            }
+
+            type: Kirigami.MessageType.Warning
+            showCloseButton: true
+            visible: false
         }
     }
 

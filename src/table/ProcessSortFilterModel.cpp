@@ -200,6 +200,30 @@ QVariantMap ProcessSortFilterModel::columnMapping() const
     return m_columnMapping;
 }
 
+QModelIndex ProcessSortFilterModel::indexOfPid(qint64 pid) const
+{
+    auto source = sourceModel();
+    if (!source || m_pidColumn == -1) {
+        return QModelIndex{};
+    }
+
+    const auto matches = source->match(source->index(0, m_pidColumn), ProcessDataModel::Value, pid, 1, Qt::MatchExactly | Qt::MatchRecursive);
+    if (matches.isEmpty()) {
+        return QModelIndex{};
+    }
+
+    // The pid column may be hidden, so use the first column of the row that we show.
+    const auto sourceIndex = matches.first();
+    for (int column = 0; column < source->columnCount(sourceIndex.parent()); ++column) {
+        const auto index = mapFromSource(sourceIndex.siblingAtColumn(column));
+        if (index.isValid()) {
+            return index;
+        }
+    }
+
+    return QModelIndex{};
+}
+
 void ProcessSortFilterModel::findColumns()
 {
     beginFilterChange();

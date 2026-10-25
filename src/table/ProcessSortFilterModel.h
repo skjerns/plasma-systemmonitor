@@ -62,6 +62,9 @@ public:
     QVariantMap columnMapping() const;
     Q_SIGNAL void columnMappingChanged();
 
+    // Returns an index in the row of the process with the given pid, or an invalid index if it is filtered out.
+    Q_INVOKABLE QModelIndex indexOfPid(qint64 pid) const;
+
     Q_INVOKABLE void sort(int column, Qt::SortOrder order) override;
     Q_SIGNAL void sorted();
 

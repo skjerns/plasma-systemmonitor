@@ -13,6 +13,8 @@ target_sources(PlasmaSystemMonitorTable PRIVATE
     ProcessSortFilterModel.h
     ReverseColumnsProxyModel.cpp
     ReverseColumnsProxyModel.h
+    WindowPicker.cpp
+    WindowPicker.h
 )
 
 ecm_target_qml_sources(PlasmaSystemMonitorTable SOURCES
@@ -29,7 +31,7 @@ ecm_target_qml_sources(PlasmaSystemMonitorTable SOURCES
     AffinityDialog.qml
 )
 
-target_link_libraries(PlasmaSystemMonitorTable PRIVATE Qt::Quick KSysGuard::Sensors KSysGuard::ProcessCore KF6::CoreAddons KF6::ItemModels)
+target_link_libraries(PlasmaSystemMonitorTable PRIVATE Qt::Quick Qt::DBus KSysGuard::Sensors KSysGuard::ProcessCore KF6::CoreAddons KF6::ItemModels)
 
 install(TARGETS PlasmaSystemMonitorTable ${KDE_INSTALL_DEFAULT_ARGS})
 
