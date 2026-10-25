@@ -1,4 +1,4 @@
-Custom version that includes a "Select Window" button on the Processes page: click it, then click any window to jump to the process that owns it.
+Custom version that includes a crosshair button on the Applications and Processes pages: click it, then click any window to jump to its application, or to its process if it is not part of one.
 
 plasma-systemmonitor
 ====================
